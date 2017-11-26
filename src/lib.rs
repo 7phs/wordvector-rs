@@ -7,6 +7,10 @@
 
 extern crate core;
 extern crate test;
+extern crate rand;
+extern crate emd;
 
 pub mod dictionary;
 pub mod bow;
+pub mod wordvector;
+mod matrix;

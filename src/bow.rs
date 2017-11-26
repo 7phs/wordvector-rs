@@ -1,16 +1,15 @@
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use ::dictionary::Dictionary;
 
-impl<'a> Dictionary<'a> {
+impl Dictionary {
     fn doc_to_bow<T, I>(&self, doc: I) -> Vec<i64>
         where
-            T: Into<Cow<'a, str>>,
-            I: IntoIterator<Item=T>
+            I: IntoIterator<Item=T>,
+            T: ToString
     {
-        let mut counter: BTreeMap<Cow<'a, str>, i64> = BTreeMap::new();
+        let mut counter: BTreeMap<String, i64> = BTreeMap::new();
 
-        for word in doc.into_iter().map(|word| word.into()) {
+        for word in doc.into_iter().map(|word| word.to_string()) {
             if let Some(mut value) = counter.get_mut(&word) {
                 *value += 1;
                 continue;
@@ -23,7 +22,7 @@ impl<'a> Dictionary<'a> {
         res.resize(self.len(), 0);
 
         for (word, &freq) in counter.iter() {
-            if let Some(index) = self.word_index(word.into()) {
+            if let Some(index) = self.word_index(word) {
                 res[index as usize] = freq;
             }
         }
@@ -33,8 +32,8 @@ impl<'a> Dictionary<'a> {
 
     pub fn bow_normalized<T, I>(&self, doc: I) -> Option<Vec<f32>>
         where
-            T: Into<Cow<'a, str>>,
-            I: IntoIterator<Item=T>
+            I: IntoIterator<Item=T>,
+            T: ToString
     {
         let iter = doc.into_iter();
 
@@ -63,23 +62,23 @@ mod testing {
 
     #[test]
     fn test_dictionary_doc_to_bow() {
-        let dict = Dictionary::new_extend(["крыльца", "намело", "нашего", "сугробы", "у"].iter().cloned());
+        let dict = Dictionary::with_extend(&["крыльца", "намело", "нашего", "сугробы", "у"]);
 
         let text = ["намело", "сугробы", "намело", "вдвойне", "у", "крыльца", "намело", "намело", "за", "крыльца"];
 
-        let exist = dict.doc_to_bow(text.iter().cloned());
+        let exist = dict.doc_to_bow(&text);
 
         assert_eq!(exist, [2, 4, 0, 1, 1], "check doc to bow");
     }
 
     #[test]
     fn test_dictionary_bow_normalized() {
-        let dict = Dictionary::new_extend(["крыльца", "намело", "нашего", "сугробы", "у"].iter().cloned());
+        let dict = Dictionary::with_extend(&["крыльца", "намело", "нашего", "сугробы", "у"]);
 
         {
             let text = ["намело", "сугробы", "намело", "вдвойне", "у", "крыльца", "намело", "намело", "за", "крыльца"];
 
-            if let Some(exist) = dict.bow_normalized(text.iter().cloned()) {
+            if let Some(exist) = dict.bow_normalized(&text) {
                 assert_eq!(exist, [0.2f32, 0.4, 0.0, 0.1, 0.1], "check bow normalize");
             } else {
                 assert!(false, "failed to get bow normalized");
@@ -89,7 +88,7 @@ mod testing {
         {
             let text = ["в", "бананово", "лимонном", "сингапуре", "в", "буре"];
 
-            if let Some(exist) = dict.bow_normalized(text.iter().cloned()) {
+            if let Some(exist) = dict.bow_normalized(&text) {
                 assert_eq!(exist, [0.0f32, 0.0, 0.0, 0.0, 0.0], "check whole empty bow normalize");
             } else {
                 assert!(false, "failed to get bow normalized");
@@ -99,7 +98,7 @@ mod testing {
         {
             let text: Vec<&str> = Vec::new();
 
-            if let Some(_) = dict.bow_normalized(text.iter().cloned()) {
+            if let Some(_) = dict.bow_normalized(&text) {
                 assert!(false, "failed to check empty bow");
             } else {
                 assert!(true, "right checking empty bow");

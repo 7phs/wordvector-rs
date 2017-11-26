@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["alexey <piyanin@gmail.com>"]
 
 [dependencies]
+rand = "0.3"
+emd = { path = "../emd-rs/" }
