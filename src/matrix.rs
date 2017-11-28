@@ -17,7 +17,6 @@ where T: Clone + Default
     }
 
     pub fn as_matrix_mut(&mut self) -> Vec<&mut [T]> {
-        println!("sz={}; self.data.len()={}", self.sz, self.data.len());
         self.data.chunks_mut(self.sz).collect()
     }
 

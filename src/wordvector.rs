@@ -24,14 +24,13 @@ impl<'a> WordVector<'a> {
         }
     }
 
-    fn dictionary<I, T>(&self, doc: I) -> Dictionary
+    pub(crate) fn dictionary<T>(&self, doc: &[T]) -> Dictionary
         where
-            I: IntoIterator<Item=T>,
             T: ToString
     {
         let mut dict = Dictionary::default();
 
-        for w in doc.into_iter() {
+        for w in doc {
             let word: String = w.to_string();
 
             if let Some(_) = self.model.word_index(&word) {
@@ -40,6 +39,50 @@ impl<'a> WordVector<'a> {
         }
 
         dict
+    }
+
+    pub(crate) fn doc_to_unite_core<T>(&self, doc: &[T]) -> Result<Vec<f32>, &str>
+        where
+            T: ToString
+    {
+        let doc_len = doc.len() as f32;
+
+        let mut unite_core: Vec<f32> = doc.iter()
+            .map(|word|
+                self.model.word_to_vector(&word.to_string())
+            )
+            // TODO: SUM
+            .fold(Vec::new(), |mut acc, word_vector| {
+                if let Some(word_vector) = word_vector {
+                    if acc.is_empty() {
+                        acc.resize_default(word_vector.len());
+                    }
+
+                    acc.iter_mut()
+                        .zip(word_vector.iter())
+                        .for_each(|(v1, v2)| *v1 += v2);
+                }
+
+                acc
+            });
+
+        // TODO: NORMALIZE
+        unite_core.iter_mut()
+            .for_each(|v| *v /= doc_len);
+
+        let distance: f32 = unite_core.iter()
+            .fold(0.0f32, |acc, v| {
+                acc + v * v
+            })
+            .sqrt();
+
+        if distance > 0.0f32 {
+            // TODO: NORMALIZE
+            unite_core.iter_mut()
+                .for_each(|v| *v /=  distance)
+        }
+
+        Ok(unite_core)
     }
 
     pub fn words_distance(&self, word1: &str, word2: &str) -> Option<f32> {
@@ -53,13 +96,12 @@ impl<'a> WordVector<'a> {
             .sum())
     }
 
-    pub fn wm_distance<I, T>(&self, doc1: I, doc2: I) -> Result<f32, &str>
+    pub fn wm_distance<T>(&self, doc1: &[T], doc2: &[T]) -> Result<f32, &str>
         where
-            I: IntoIterator<Item=T> + Clone,
             T: ToString
     {
-        let dict1 = self.dictionary(doc1.clone());
-        let dict2 = self.dictionary(doc2.clone());
+        let dict1 = self.dictionary(&doc1);
+        let dict2 = self.dictionary(&doc2);
 
         if dict1.is_empty() || dict2.is_empty() {
             return Err("empty dictionary");
@@ -70,12 +112,12 @@ impl<'a> WordVector<'a> {
             return Ok(1.0);
         }
 
-        let doc_bow1 = match dict.bow_normalized(doc1) {
+        let doc_bow1 = match dict.bow_normalized(&doc1) {
             Some(bow) => bow,
             None => return Err("empty doc bow"),
         };
 
-        let doc_bow2 = match dict.bow_normalized(doc2) {
+        let doc_bow2 = match dict.bow_normalized(&doc2) {
             Some(bow) => bow,
             None => return Err("empty doc bow"),
         };
@@ -99,122 +141,17 @@ impl<'a> WordVector<'a> {
         Ok(self.distance.calc(&doc_bow1, &doc_bow2, &matrix.as_matrix()))
     }
 
-    pub fn similarity<I, T>(&self, doc1: I, doc2: I) -> Result<f32, &str>
+    pub fn similarity<T>(&self, doc1: &[T], doc2: &[T]) -> Result<f32, &str>
         where
-            I: IntoIterator<Item=T>,
             T: ToString
     {
-        Err("not implemented")
-    }
-}
+        let unit_core1 = self.doc_to_unite_core(&doc1)?;
+        let unit_core2 = self.doc_to_unite_core(&doc2)?;
 
-#[cfg(test)]
-mod testing {
-    use super::*;
-    use ::rand;
-    use ::rand::Rng;
-    use ::std::collections::BTreeMap;
-
-    const TEST_DICT_TEXT: [&str; 5] = ["намело", "сугробы", "у", "нашего", "крыльца"];
-    const VEC_LEN: i32 = 10;
-
-    struct TestModel {
-        data: BTreeMap<String, i64>,
-        vectors: BTreeMap<String, Vec<f32>>,
-    }
-
-    impl Default for TestModel {
-        fn default() -> TestModel {
-            let mut data: BTreeMap<String, i64> = BTreeMap::new();
-            let mut vectors: BTreeMap<String, Vec<f32>> = BTreeMap::new();
-            let mut rng = rand::thread_rng();
-
-            for (index, word) in TEST_DICT_TEXT.iter().cloned().enumerate() {
-                data.insert(word.to_string().into(), index as i64);
-                vectors.insert(word.to_string().into(), (0..VEC_LEN)
-                    .map(|_| rng.gen_range::<f32>(0.0, 1.0))
-                    .collect());
-            }
-
-            TestModel {
-                data,
-                vectors,
-            }
-        }
-    }
-
-    impl WordVectorModel for TestModel {
-        fn word_index(&self, word: &str) -> Option<i64> {
-            match self.data.get(&word.to_string()) {
-                Some(&index) => Some(index),
-                None => None
-            }
-        }
-
-        fn word_to_vector(&self, word: &str) -> Option<Vec<f32>> {
-            match self.vectors.get(&word.to_string()) {
-                Some(index) => Some(index.clone()),
-                None => None,
-            }
-        }
-
-        fn sentence_to_vector(&self, text: &str) -> Option<Vec<f32>> {
-            let doc_vec: Vec<f32> = text.split_whitespace()
-                .map(|word| self.word_to_vector(&word))
-                .fold(Vec::<f32>::new(), |acc, word_vector| {
-                    if let Some(word_vector) = word_vector {
-                        acc.iter()
-                            .zip(word_vector.iter())
-                            .map(|(&v1, v2)| v1 + v2)
-                            .collect()
-                    } else {
-                        acc
-                    }
-                });
-
-            if doc_vec.len() > 0 {
-                Some(doc_vec)
-            } else {
-                None
-            }
-        }
-    }
-
-    impl WordVectorDistance for TestModel {
-        fn calc(&self, doc_bow1: &[f32], doc_bow2: &[f32], distance_matrix: &[&[f32]]) -> f32 {
-            doc_bow1[1] * doc_bow2[1] * distance_matrix[2][2]
-        }
-    }
-
-    #[test]
-    fn test_wordvector_dictionary() {
-        let model = TestModel::default();
-        let vector = WordVector::new(&model, &model);
-
-        let exist_dict = vector.dictionary(&["намело", "сугробы", "за", "калиткой"]);
-
-        let expected_dict = Dictionary::with_extend(&["намело", "сугробы"]);
-
-        assert_eq!(exist_dict, expected_dict, "check dict");
-    }
-
-    #[test]
-    fn test_wordvector_wm_dictance() {
-        let model = TestModel::default();
-        let vector = WordVector::new(&model, &model);
-
-        let exist_distance = match vector.wm_distance(
-            "намело сугробы".split_whitespace(),
-            "сугробы у крыльца".split_whitespace()
-        ) {
-            Ok(distance) => distance,
-            Err(err) => {
-                assert!(false, "failed to calc distance {:?}", err);
-                0.0f32
-            },
-        };
-        let expected_distance = 14.56f32;
-
-        assert_eq!(exist_distance, expected_distance, "check distance");
+        // TODO: MUL
+        Ok(unit_core1.iter()
+            .zip(unit_core2.iter())
+            .map(|(v1, v2)| v1 * v2)
+            .sum())
     }
 }

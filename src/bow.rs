@@ -2,14 +2,13 @@ use std::collections::BTreeMap;
 use ::dictionary::Dictionary;
 
 impl Dictionary {
-    fn doc_to_bow<T, I>(&self, doc: I) -> Vec<i64>
+    fn doc_to_bow<T>(&self, doc: &[T]) -> Vec<i64>
         where
-            I: IntoIterator<Item=T>,
             T: ToString
     {
         let mut counter: BTreeMap<String, i64> = BTreeMap::new();
 
-        for word in doc.into_iter().map(|word| word.to_string()) {
+        for word in doc.iter().map(|word| word.to_string()) {
             if let Some(mut value) = counter.get_mut(&word) {
                 *value += 1;
                 continue;
@@ -30,25 +29,17 @@ impl Dictionary {
         res
     }
 
-    pub fn bow_normalized<T, I>(&self, doc: I) -> Option<Vec<f32>>
+    pub fn bow_normalized<T>(&self, doc: &[T]) -> Option<Vec<f32>>
         where
-            I: IntoIterator<Item=T>,
             T: ToString
     {
-        let iter = doc.into_iter();
-
-        let normalizer: f32 = {
-            match iter.size_hint() {
-                (_, Some(normalizer)) => normalizer as f32,
-                _ => 0.0,
-            }
-        };
+        let normalizer: f32 = doc.len() as f32;
 
         if normalizer == 0.0 {
             return None
         }
 
-        Some(self.doc_to_bow(iter)
+        Some(self.doc_to_bow(&doc)
             .into_iter()
             .map(|bow| bow as f32 / normalizer)
             .collect())
