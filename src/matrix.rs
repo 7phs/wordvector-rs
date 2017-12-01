@@ -4,7 +4,7 @@ pub struct Matrix<T> {
 }
 
 impl<T> Matrix<T>
-where T: Clone + Default
+    where T: Clone + Default
 {
     pub fn new(sz: usize) -> Matrix<T> {
         let mut data: Vec<T> = Vec::new();
@@ -23,6 +23,8 @@ where T: Clone + Default
     pub fn as_matrix(&self) -> Vec<&[T]> {
         self.data.chunks(self.sz).collect()
     }
+
+    pub fn as_slice(&self) -> &[T] { self.data.as_slice() }
 }
 
 #[cfg(test)]

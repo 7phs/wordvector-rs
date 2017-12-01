@@ -88,12 +88,6 @@ impl<T> Extend<T> for Dictionary
     {
         for word in iter.into_iter() {
             self.insert(word);
-            //            let w: String = word.to_string();
-            //
-            //            if !self.contains(&w) {
-            //                let index = self.index_inc();
-            //                self.data.insert(w, index);
-            //            }
         }
     }
 }

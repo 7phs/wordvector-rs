@@ -31,6 +31,23 @@ fn test_wordvector_doc_to_unit_core() {
 }
 
 #[test]
+fn test_wordvector_words_distance() {
+    let model = TestModel::default();
+    let vector = WordVector::new(&model, &model);
+
+    let exist_distance = match vector.words_distance("намело", "сугробы") {
+        Some(distance) => distance,
+        None => {
+            assert!(false, "failed to calc distance - one of words wasn't find");
+            0.0f32
+        }
+    };
+    let expected_distance = 1.331586f32;
+
+    assert_eq!(exist_distance, expected_distance, "check distance calc");
+}
+
+#[test]
 fn test_wordvector_wm_distance() {
     let model = TestModel::default();
     let vector = WordVector::new(&model, &model);
@@ -45,7 +62,7 @@ fn test_wordvector_wm_distance() {
             0.0f32
         }
     };
-    let expected_distance = 15.692f32;
+    let expected_distance = 0.28105024f32;
 
     assert_eq!(exist_distance, expected_distance, "check distance");
 }
@@ -65,6 +82,7 @@ fn test_wordvector_similarity() {
             0.0f32
         }
     };
+    let expected_similarity = 0.8433072f32;
 
-    assert!(exist_similarity>0.5f32, "check similarity value");
+    assert_eq!(exist_similarity, expected_similarity, "check similarity value");
 }

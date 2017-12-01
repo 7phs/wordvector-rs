@@ -8,7 +8,6 @@
 
 extern crate core;
 extern crate test;
-extern crate rand;
 
 pub mod dictionary;
 pub mod bow;

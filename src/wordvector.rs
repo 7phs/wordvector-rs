@@ -9,7 +9,7 @@ pub trait WordVectorModel {
 }
 
 pub trait WordVectorDistance {
-    fn calc(&self, doc_bow1: &[f32], doc_bow2: &[f32], distance_matrix: &[&[f32]]) -> f32;
+    fn calc(&self, doc_bow1: &[f32], doc_bow2: &[f32], distance_matrix: &[f32]) -> f32;
 }
 
 pub struct WordVector<'a> {
@@ -77,12 +77,13 @@ impl<'a> WordVector<'a> {
     pub fn words_distance(&self, word1: &str, word2: &str) -> Option<f32> {
         let vec1 = self.model.word_to_vector(&word1)?;
         let vec2 = self.model.word_to_vector(&word2)?;
-
-        Some(vec1.iter()
+        let distance: f32 = vec1.iter()
             .zip(vec2.iter())
-            .map(|(&v1, v2)| v1 + v2)
+            .map(|(&v1, v2)| v1 - v2)
             .map(|v| v*v)
-            .sum())
+            .sum();
+
+        Some(distance.sqrt())
     }
 
     pub fn wm_distance<T>(&self, doc1: &[T], doc2: &[T]) -> Result<f32, &str>
@@ -127,7 +128,7 @@ impl<'a> WordVector<'a> {
             }
         }
 
-        Ok(self.distance.calc(&doc_bow1, &doc_bow2, &matrix.as_matrix()))
+        Ok(self.distance.calc(&doc_bow1, &doc_bow2, matrix.as_slice()))
     }
 
     pub fn similarity<T>(&self, doc1: &[T], doc2: &[T]) -> Result<f32, &str>
