@@ -3,6 +3,7 @@ use rand::Rng;
 use std::collections::BTreeMap;
 
 use ::wordvector::{WordVectorModel, WordVectorDistance};
+use ::utils::vec_sum;
 
 const TEST_DICT_TEXT: [&str; 5] = ["намело", "сугробы", "у", "нашего", "крыльца"];
 const VEC_LEN: i32 = 10;
@@ -48,23 +49,10 @@ impl WordVectorModel for TestModel {
     }
 
     fn sentence_to_vector(&self, text: &str) -> Option<Vec<f32>> {
-        let doc_vec: Vec<f32> = text.split_whitespace()
-            .map(|word| self.word_to_vector(&word))
-            // TODO: SUM
-            .fold(Vec::new(), |mut acc, word_vector| {
-                if let Some(word_vector) = word_vector {
-                    // acc += word_vector;
-                    if acc.is_empty() {
-                        acc.resize_default(word_vector.len());
-                    }
-
-                    acc.iter_mut()
-                        .zip(word_vector.iter())
-                        .for_each(|(v1, v2)| *v1 += v2);
-                }
-
-                acc
-            });
+        let doc_vec: Vec<f32> = vec_sum(
+            text.split_whitespace()
+            .filter_map(|word| self.word_to_vector(&word))
+        );
 
         if doc_vec.len() > 0 {
             Some(doc_vec)

@@ -13,6 +13,7 @@ extern crate rand;
 pub mod dictionary;
 pub mod bow;
 pub mod wordvector;
+pub mod utils;
+
 mod matrix;
 mod testing;
-pub(crate) mod utils;

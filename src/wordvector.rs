@@ -1,5 +1,6 @@
 use dictionary::Dictionary;
 use matrix::Matrix;
+use utils::vec_sum;
 
 pub trait WordVectorModel {
     fn word_index(&self, word: &str) -> Option<i64>;
@@ -47,24 +48,12 @@ impl<'a> WordVector<'a> {
     {
         let doc_len = doc.len() as f32;
 
-        let mut unite_core: Vec<f32> = doc.iter()
-            .map(|word|
+        let mut unite_core: Vec<f32> = vec_sum(
+            doc.iter()
+            .filter_map(|word|
                 self.model.word_to_vector(&word.to_string())
             )
-            // TODO: SUM
-            .fold(Vec::new(), |mut acc, word_vector| {
-                if let Some(word_vector) = word_vector {
-                    if acc.is_empty() {
-                        acc.resize_default(word_vector.len());
-                    }
-
-                    acc.iter_mut()
-                        .zip(word_vector.iter())
-                        .for_each(|(v1, v2)| *v1 += v2);
-                }
-
-                acc
-            });
+        );
 
         // TODO: NORMALIZE
         unite_core.iter_mut()
