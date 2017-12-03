@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ::wordvector::{WordVectorModel, WordVectorDistance};
+use ::{WordVectorModel, WordVectorDistance};
 use ::utils::vec_sum;
 
 pub(crate) struct TestModel {

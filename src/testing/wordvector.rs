@@ -1,6 +1,6 @@
 use dictionary::Dictionary;
-use wordvector::WordVector;
 use utils::doc_parse;
+use {WordVector};
 
 use testing::model::TestModel;
 
