@@ -60,6 +60,10 @@ impl<'a> WordVector<'a> {
         Ok(unite_core)
     }
 
+    pub fn word_index(&self, word: &str) -> Option<i64> {
+        self.model.word_index(word)
+    }
+
     pub fn words_distance(&self, word1: &str, word2: &str) -> Option<f32> {
         let vec1 = self.model.word_to_vector(&word1)?;
         let vec2 = self.model.word_to_vector(&word2)?;

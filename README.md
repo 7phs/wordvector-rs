@@ -1,0 +1,1 @@
+A word vector calculation code. 
